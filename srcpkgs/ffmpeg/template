@@ -2,7 +2,7 @@
 # audacity also needs to be bumped when a new ffmpeg version bumps libavformat's soname!
 pkgname=ffmpeg
 version=4.4
-revision=1
+revision=2
 short_desc="Decoding, encoding and streaming software"
 maintainer="Orphaned <orphan@voidlinux.org>"
 license="GPL-3.0-or-later"
@@ -25,15 +25,17 @@ makedepends="zlib-devel bzip2-devel freetype-devel alsa-lib-devel libXfixes-deve
  $(vopt_if dav1d libdav1d-devel) $(vopt_if zimg zimg-devel)
  $(vopt_if webp libwebp-devel) $(vopt_if sofa libmysofa-devel)
  $(vopt_if vulkan 'vulkan-loader Vulkan-Headers')
- $(vopt_if drm libdrm-devel)"
+ $(vopt_if drm libdrm-devel)
+ $(vopt_if rpi rpi-userland-devel)"
 depends="ffplay>=${version}_${revision}"
 
 build_options="x265 v4l2 vaapi vdpau vpx faac fdk_aac aom nvenc sndio pulseaudio
- dav1d zimg webp sofa vulkan drm"
+ dav1d zimg webp sofa vulkan drm rpi"
 build_options_default="x265 v4l2 vpx aom sndio pulseaudio dav1d webp vulkan drm"
 
 case "$XBPS_TARGET_MACHINE" in
 	i686*|x86_64*) build_options_default+=" vaapi vdpau nvenc";;
+	arm*) build_options_default+=" rpi";;
 	ppc64*) build_options_default+=" vaapi vdpau";;
 	mips*) CFLAGS="-mnan=legacy";;
 esac
@@ -88,6 +90,13 @@ do_configure() {
 		_args+=" --extra-libs=-latomic"
 	fi
 
+	if [ "$build_option_rpi" ]; then
+		# Enable video HW decode for rpi.
+		_args+=" --enable-mmal --extra-ldflags=-L${XBPS_CROSS_BASE}/opt/vc/lib "
+		local xincs=("-I${XBPS_CROSS_BASE}/opt/vc/include" "-I${XBPS_CROSS_BASE}/opt/vc/include/interface/vmcs_host/linux" "-I${XBPS_CROSS_BASE}/opt/vc/include/interface/vcos/pthreads")
+		local extra_cflags=--extra-cflags="${xincs[@]}"
+	fi
+
 	./configure --prefix=/usr --disable-debug --enable-gpl --enable-gnutls \
 		--disable-stripping \
 		--enable-libcdio --enable-version3 --enable-runtime-cpudetect \
@@ -111,7 +120,7 @@ do_configure() {
 		$(vopt_if webp '--enable-libwebp') \
 		$(vopt_if sofa '--enable-libmysofa') \
 		$(vopt_if vulkan '--enable-vulkan') \
-		$(vopt_if drm '--enable-libdrm')
+		$(vopt_if drm '--enable-libdrm') "${extra_cflags[@]}"
 }
 do_build() {
 	make ${makejobs}
