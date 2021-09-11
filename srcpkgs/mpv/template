@@ -4,17 +4,17 @@ version=0.34.0
 revision=2
 build_style=waf3
 configure_args="--confdir=/etc/mpv --docdir=/usr/share/examples/mpv
- --enable-cdda --enable-dvbin --enable-dvdnav --enable-libarchive
+ $(vopt_enable libbluray) $(vopt_enable cdda) $(vopt_enable dvbin) $(vopt_enable dvdnav) $(vopt_enable libarchive)
  --enable-libmpv-shared --enable-cplugins $(vopt_enable alsa) $(vopt_enable caca)
  $(vopt_enable jack) $(vopt_enable lcms lcms2) $(vopt_enable lua)
- $(vopt_enable openal) $(vopt_enable pulseaudio pulse) $(vopt_enable sdl2)
+ $(vopt_enable openal) $(vopt_enable pulseaudio pulse) $(vopt_enable rpi) $(vopt_enable sdl2)
  $(vopt_enable vapoursynth) $(vopt_enable vdpau) $(vopt_enable vulkan)
  $(vopt_enable vulkan shaderc) $(vopt_enable wayland) $(vopt_enable x11)"
 hostmakedepends="pkg-config python3-docutils perl $(vopt_if wayland wayland-devel)"
 makedepends="MesaLib-devel ffmpeg-devel harfbuzz-devel libXv-devel
- libass-devel libbluray-devel libcdio-paranoia-devel libdvdnav-devel
+ libass-devel $(vopt_if libbluray libbluray-devel) $(vopt_if cdda libcdio-paranoia-devel) $(vopt_if dvdnav libdvdnav-devel)
  libguess-devel libuuid-devel libva-glx-devel rubberband-devel uchardet-devel
- libarchive-devel $(vopt_if alsa alsa-lib-devel) $(vopt_if caca libcaca-devel)
+ $(vopt_if libarchive libarchive-devel) $(vopt_if alsa alsa-lib-devel) $(vopt_if caca libcaca-devel)
  $(vopt_if jack jack-devel) $(vopt_if lcms lcms2-devel)
  $(vopt_if lua lua52-devel) $(vopt_if openal libopenal-devel)
  $(vopt_if pulseaudio pulseaudio-devel) $(vopt_if rpi rpi-userland-devel) $(vopt_if sdl2 SDL2-devel)
@@ -35,16 +35,18 @@ if [ "$XBPS_TARGET_NO_ATOMIC8" ]; then
 	makedepends+=" libatomic-devel"
 fi
 
-build_options="alsa caca jack lcms lua openal pulseaudio rpi sdl2 vapoursynth vdpau
+build_options="alsa libbluray caca cdda dvbin dvdnav jack lcms lua openal pulseaudio rpi sdl2 vapoursynth vdpau
  vulkan wayland x11"
-build_options_default="alsa jack lcms lua pulseaudio vdpau vulkan wayland x11"
+build_options_default="alsa libbluray cdda dvbin dvdnav jack lcms libarchive lua pulseaudio vdpau vulkan wayland x11"
 desc_option_caca="Enable support for libcaca video output"
 desc_option_lcms="Enable support for LittleCMS 2 engine"
 desc_option_openal="Enable support for OpenAL audio output"
 vopt_conflict sdl2 wayland
 
 case "$XBPS_TARGET_MACHINE" in
-	arm*) build_options_default+=" rpi";;
+	arm*)
+	build_options_default="alsa lcms lua rpi vulkan"
+	;;
 esac
 
 if [ -z "$CROSS_BUILD" ]; then
